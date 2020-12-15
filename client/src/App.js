@@ -1,73 +1,38 @@
-import React, { Component } from "react";
-import SimpleStorageContract from "./contracts/SimpleStorage.json";
-import getWeb3 from "./getWeb3";
+import React, { useState } from 'react'
+import './App.css';
+import useWeb3 from './useWeb3'
 
-import "./App.css";
+const App = () => {
+  const {loading, error, data} = useWeb3()
 
-class App extends Component {
-  state = { storageValue: 0, web3: null, accounts: null, contract: null };
+  // Example
+  const [storageValue, setStorageValue] = useState(0)
+  const ref = React.createRef()
+  
+  if (loading) return <p>Loading...</p>
+  if (error) return <p>Error: {error.message}</p>
+  
+  const { web3, accounts, contract } = data
 
-  componentDidMount = async () => {
-    try {
-      // Get network provider and web3 instance.
-      const web3 = await getWeb3();
+  // Example
+  const handleSubmit = async () => {
 
-      // Use web3 to get the user's accounts.
-      const accounts = await web3.eth.getAccounts();
+    await contract.methods.set(ref.current.value).send({ from: accounts[0] })
 
-      // Get the contract instance.
-      const networkId = await web3.eth.net.getId();
-      const deployedNetwork = SimpleStorageContract.networks[networkId];
-      const instance = new web3.eth.Contract(
-        SimpleStorageContract.abi,
-        deployedNetwork && deployedNetwork.address,
-      );
-
-      // Set web3, accounts, and contract to the state, and then proceed with an
-      // example of interacting with the contract's methods.
-      this.setState({ web3, accounts, contract: instance }, this.runExample);
-    } catch (error) {
-      // Catch any errors for any of the above operations.
-      alert(
-        `Failed to load web3, accounts, or contract. Check console for details.`,
-      );
-      console.error(error);
-    }
-  };
-
-  runExample = async () => {
-    const { accounts, contract } = this.state;
-
-    // Stores a given value, 5 by default.
-    await contract.methods.set(5).send({ from: accounts[0] });
-
-    // Get the value from the contract to prove it worked.
-    const response = await contract.methods.get().call();
-
-    // Update state with the result.
-    this.setState({ storageValue: response });
-  };
-
-  render() {
-    if (!this.state.web3) {
-      return <div>Loading Web3, accounts, and contract...</div>;
-    }
-    return (
-      <div className="App">
-        <h1>Good to Go!</h1>
-        <p>Your Truffle Box is installed and ready.</p>
-        <h2>Smart Contract Example</h2>
-        <p>
-          If your contracts compiled and migrated successfully, below will show
-          a stored value of 5 (by default).
-        </p>
-        <p>
-          Try changing the value stored on <strong>line 40</strong> of App.js.
-        </p>
-        <div>The stored value is: {this.state.storageValue}</div>
-      </div>
-    );
+    setStorageValue(await contract.methods.get().call())
   }
+
+  return (
+    <div className="App">
+      {/* Example */}
+      <h1>Simple Storage</h1>
+      <p>Current address: {accounts[0]} </p>
+      <p>Current value: {storageValue} </p>
+      <input type="number" ref={ref} min="0" />
+      <button type="button" onClick={handleSubmit}>Submit</button>
+      {/* /Example */}
+    </div>
+  );
 }
 
 export default App;
